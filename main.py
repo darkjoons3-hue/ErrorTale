@@ -47,7 +47,6 @@ def load_img(name, size=None):
         s.fill(RED)
         return s
 
-# Базовые картинки
 logo_raw = load_img('logo.png')
 if logo_raw.get_width() > 0 and logo_raw.get_width() != 100:
     w, h = logo_raw.get_size()
@@ -59,13 +58,13 @@ bg_down = load_img('background-down.png', (320, 120))
 heart_img = load_img('soul-red.png', (24, 24))
 history_img = load_img('history.png', (500, 370))
 
-# Новые картинки для боя
-error_sans_img = load_img('error-sans-static.png', (220, 340))
-dialog_bubble = load_img('dialog-sans.png', (300, 140))
+# УМЕНЬШЕННЫЕ КАРТИНКИ БОЯ
+error_sans_img = load_img('error-sans-static.png', (160, 250))
+dialog_bubble = load_img('dialog-sans.png', (280, 120))
 btn_fight = load_img('fight.png', (130, 50))
 btn_act = load_img('act.png', (130, 50))
 btn_item = load_img('item.png', (130, 50))
-btn_mercy = load_img('mercy.png', (130, 50))
+btn_mercy = load_img('mecry.png', (130, 50))
 
 # Шрифты
 try:
@@ -73,15 +72,19 @@ try:
     small_font = pygame.font.Font(resource_path('DeterminationMono.ttf'), 20)
     menu_font = pygame.font.Font(resource_path('DeterminationMono.ttf'), 26)
     stat_font = pygame.font.Font(resource_path('DeterminationMono.ttf'), 28)
+    
+    # УВЕЛИЧЕННЫЙ ШРИФТ ДЛЯ СТАТОВ В БОЮ
+    battle_big_font = pygame.font.Font(resource_path('DeterminationMono.ttf'), 28)
     battle_font = pygame.font.Font(resource_path('DeterminationMono.ttf'), 22)
 except:
     font = pygame.font.Font(None, 40); small_font = pygame.font.Font(None, 24)
     menu_font = pygame.font.Font(None, 30); stat_font = pygame.font.Font(None, 32)
+    battle_big_font = pygame.font.Font(None, 32)
     battle_font = pygame.font.Font(None, 26)
 
 try:
-    sans_font = pygame.font.Font(resource_path('ComicSans.ttf'), 24)
-except: sans_font = pygame.font.Font(None, 26)
+    sans_font = pygame.font.Font(resource_path('ComicSans.ttf'), 22)
+except: sans_font = pygame.font.Font(None, 24)
 
 # Звуки
 def load_snd(name):
@@ -93,7 +96,7 @@ snd_logo2 = load_snd('undertale-logo2.mp3')
 snd_select = load_snd('select.mp3')
 snd_bells = load_snd('bells.mp3')
 snd_dark = load_snd('dark.mp3')
-snd_sans = load_snd('sans-sound.mp3') # <--- ДОБАВЛЕН ЗВУК САНСА
+snd_sans = load_snd('sans-sound.mp3')
 
 def play_snd(s):
     if s and sound_on: s.play()
@@ -123,38 +126,34 @@ STATE_BATTLE = 7
 state = STATE_LOGO
 start_time = pygame.time.get_ticks()
 
-# Переходы
 fade_alpha = 0        
 fade_dir = 0          
 next_state = None     
 
-# Логотип
 logo_phase = 0
 logo_timer = 0
 logo_alpha = 0
 errmod_alpha = 0
 
-# Меню
 menu_selected = 0 
 last_top = 0 
 last_bottom = 2 
 confirm_choice = 0 
 
-# Настройки
 opt_selected = 0
 opt_items = ["Полный экран", "Звуки", "Музыка", "Показать FPS", "Назад"]
 
-# История и колокола
 history_time = 0
 bells_time = 0
 
-# Бой
+# --- Переменные боя ---
 battle_phase = 0 
 battle_timer = 0
 battle_alpha = 0
 text_typed = 0
 text_timer = 0
-current_text = ""
+current_lines = [] # Теперь текст хранится в виде списка строк
+text_color = BLACK # Цвет текста в бабле
 
 clock = pygame.time.Clock()
 running = True
@@ -181,13 +180,11 @@ while running:
             running = False
             
         if event.type == pygame.KEYDOWN:
-            # --- ЛОГОТИП ---
             if state == STATE_LOGO and logo_phase == 2:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select)
                     start_fade(STATE_MENU)
 
-            # --- МЕНЮ ---
             elif state == STATE_MENU:
                 if event.key in (pygame.K_LEFT, pygame.K_a):
                     if menu_selected == 1: menu_selected = 0; play_snd(snd_select)
@@ -216,7 +213,6 @@ while running:
                 if menu_selected in (0, 1): last_top = menu_selected
                 if menu_selected in (2, 3): last_bottom = menu_selected
 
-            # --- ПОДТВЕРЖДЕНИЕ СБРОСА ---
             elif state == STATE_CONFIRM_RESET:
                 if event.key in (pygame.K_LEFT, pygame.K_RIGHT, pygame.K_a, pygame.K_d):
                     confirm_choice = 1 - confirm_choice 
@@ -228,7 +224,6 @@ while running:
                 if event.key in (pygame.K_x, pygame.K_ESCAPE):
                     play_snd(snd_select); state = STATE_MENU
 
-            # --- НАСТРОЙКИ ---
             elif state == STATE_OPTIONS:
                 if event.key in (pygame.K_UP, pygame.K_w):
                     opt_selected = (opt_selected - 1) % len(opt_items); play_snd(snd_select)
@@ -250,12 +245,10 @@ while running:
                 if event.key in (pygame.K_x, pygame.K_ESCAPE):
                     play_snd(snd_select); state = STATE_MENU
 
-            # --- ТИТРЫ ---
             elif state == STATE_CREDITS:
                 if event.key in (pygame.K_x, pygame.K_ESCAPE, pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select); state = STATE_MENU
 
-            # --- ИСТОРИЯ ---
             elif state == STATE_HISTORY:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select); stop_music(); start_fade(STATE_BELLS)
@@ -264,15 +257,25 @@ while running:
             elif state == STATE_BATTLE:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select)
-                    if battle_phase in (1, 2) and text_typed >= len(current_text):
+                    # Проверяем, допечатался ли текст
+                    total_chars = sum(len(line) for line in current_lines)
+                    if battle_phase in (1, 2) and text_typed >= total_chars:
                         battle_phase += 1
                         text_typed = 0
                         text_timer = 0
+                        text_color = BLACK
                         if battle_phase == 2:
-                            current_text = "Чувак тебе надо расслабится, ведь тебе сейчас предстоит выжить в вечных муках"
+                            current_lines = [
+                                "Чувак тебе надо",
+                                "расслабится, ведь",
+                                "тебе сейчас предстоит",
+                                "выжить в вечных муках"
+                            ]
                         elif battle_phase == 3:
+                            # Переход к черному экрану
                             play_snd(snd_dark)
                             battle_timer = 0 
+                            current_lines = [] # Очищаем диалог на время черного экрана
 
     # ==========================================
     # ЛОГИКА СОСТОЯНИЙ
@@ -295,7 +298,9 @@ while running:
             if state == STATE_MENU: play_music('MainTheme.mp3')
             if state == STATE_HISTORY: play_music('history.mp3', loops=0); history_time = 0
             if state == STATE_BELLS: play_snd(snd_bells); bells_time = 0
-            if state == STATE_BATTLE: battle_phase = 0; battle_alpha = 0; battle_timer = 0
+            if state == STATE_BATTLE: 
+                battle_phase = 0; battle_alpha = 0; battle_timer = 0
+                current_lines = []; text_typed = 0
             fade_dir = -1
         elif fade_dir == -1 and fade_alpha <= 0:
             fade_alpha = 0; fade_dir = 0
@@ -311,18 +316,36 @@ while running:
             battle_alpha = min(255, battle_alpha + 3)
             if battle_alpha >= 255:
                 battle_phase = 1
-                current_text = "Вижу в тебе много зла"
+                current_lines = ["Вижу в тебе", "много зла"]
                 text_typed = 0
                 text_timer = 0
         elif battle_phase in (1, 2):
-            if text_typed < len(current_text):
+            total_chars = sum(len(line) for line in current_lines)
+            if text_typed < total_chars:
                 text_timer += dt
-                if text_timer > 50: # Скорость печати
+                if text_timer > 50:
                     text_typed += 1
                     text_timer = 0
-                    play_snd(snd_sans) # <--- ЗВУК ПЕЧАТИ САНСА
+                    play_snd(snd_sans)
+        
         elif battle_phase == 3:
+            # 0.5 секунды черного экрана
             battle_timer += dt
+            if battle_timer > 500:
+                battle_phase = 4
+                text_color = RED
+                current_lines = ["ДОБРО", "ПОЖАЛОВАТЬ", "В АД"]
+                text_typed = 0
+                text_timer = 0
+        
+        elif battle_phase == 4:
+            total_chars = sum(len(line) for line in current_lines)
+            if text_typed < total_chars:
+                text_timer += dt
+                if text_timer > 150: # Медленная печать
+                    text_typed += 1
+                    text_timer = 0
+                    play_snd(snd_sans)
 
     # ==========================================
     # ОТРИСОВКА
@@ -414,19 +437,22 @@ while running:
     elif state == STATE_BELLS:
         pass
 
+    # ==========================================
+    # БОЙ
+    # ==========================================
     elif state == STATE_BATTLE:
         if battle_phase == 0:
             sans_copy = error_sans_img.copy(); sans_copy.set_alpha(battle_alpha)
-            screen.blit(sans_copy, sans_copy.get_rect(center=(cx - 120, 200)))
+            screen.blit(sans_copy, sans_copy.get_rect(center=(cx - 150, 150))) # Санс поднят и сдвинут влево
             
-            name_txt = battle_font.render("CHARA", True, WHITE); name_txt.set_alpha(battle_alpha)
-            lv_txt = battle_font.render("LV 19", True, WHITE); lv_txt.set_alpha(battle_alpha)
-            hp_txt = battle_font.render("HP 92/92", True, WHITE); hp_txt.set_alpha(battle_alpha)
+            name_txt = battle_big_font.render("CHARA", True, WHITE); name_txt.set_alpha(battle_alpha)
+            lv_txt = battle_big_font.render("LV 19", True, WHITE); lv_txt.set_alpha(battle_alpha)
+            hp_txt = battle_big_font.render("HP 92/92", True, WHITE); hp_txt.set_alpha(battle_alpha)
             
-            screen.blit(name_txt, (40, 380))
-            screen.blit(lv_txt, (150, 380))
-            pygame.draw.rect(screen, (255, 255, 0), (250, 382, 120, 18))
-            screen.blit(hp_txt, (380, 380))
+            screen.blit(name_txt, (40, 375))
+            screen.blit(lv_txt, (160, 375))
+            pygame.draw.rect(screen, (255, 255, 0), (260, 380, 100, 18)) # Полоска HP
+            screen.blit(hp_txt, (370, 375))
             
             btn_y = 420
             for btn, x_pos in [(btn_fight, 20), (btn_act, 170), (btn_item, 320), (btn_mercy, 470)]:
@@ -434,38 +460,44 @@ while running:
                     btn_c = btn.copy(); btn_c.set_alpha(battle_alpha)
                     screen.blit(btn_c, (x_pos, btn_y))
 
-        elif battle_phase in (1, 2):
-            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx - 120, 200)))
+        elif battle_phase in (1, 2, 4):
+            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx - 150, 150)))
             
-            screen.blit(battle_font.render("CHARA", True, WHITE), (40, 380))
-            screen.blit(battle_font.render("LV 19", True, WHITE), (150, 380))
-            pygame.draw.rect(screen, (255, 255, 0), (250, 382, 120, 18))
-            screen.blit(battle_font.render("HP 92/92", True, WHITE), (380, 380))
+            # Увеличенные статы
+            screen.blit(battle_big_font.render("CHARA", True, WHITE), (40, 375))
+            screen.blit(battle_big_font.render("LV 19", True, WHITE), (160, 375))
+            pygame.draw.rect(screen, (255, 255, 0), (260, 380, 100, 18))
+            screen.blit(battle_big_font.render("HP 92/92", True, WHITE), (370, 375))
             
             screen.blit(btn_fight, (20, 420))
             screen.blit(btn_act, (170, 420))
             screen.blit(btn_item, (320, 420))
             screen.blit(btn_mercy, (470, 420))
 
-            bubble_x, bubble_y = 300, 80
+            # Бабл диалога (поднят выше и уменьшен)
+            bubble_x, bubble_y = 300, 60
             screen.blit(dialog_bubble, (bubble_x, bubble_y))
             
-            visible_text = current_text[:text_typed]
-            if len(visible_text) > 20:
-                line1 = visible_text[:20]
-                line2 = visible_text[20:]
-                t1 = sans_font.render(line1, True, BLACK)
-                t2 = sans_font.render(line2, True, BLACK)
-                screen.blit(t1, (bubble_x + 40, bubble_y + 40))
-                screen.blit(t2, (bubble_x + 40, bubble_y + 70))
-            else:
-                t1 = sans_font.render(visible_text, True, BLACK)
-                screen.blit(t1, (bubble_x + 40, bubble_y + 55))
+            # Отрисовка текста построчно с эффектом печати
+            chars_left = text_typed
+            line_y = bubble_y + 25
+            
+            for line in current_lines:
+                if chars_left <= 0:
+                    break
+                
+                # Берем часть строки для отрисовки
+                visible_part = line[:chars_left]
+                chars_left -= len(line)
+                
+                # Рендерим и выводим
+                t = sans_font.render(visible_part, True, text_color)
+                screen.blit(t, (bubble_x + 40, line_y))
+                line_y += 28 # Расстояние между строками
 
         elif battle_phase == 3:
-            screen.fill(BLACK)
-            ad_text = font.render("ДОБРО ПОЖАЛОВАТЬ В АД", True, RED)
-            screen.blit(ad_text, ad_text.get_rect(center=(cx, cy)))
+            # Фаза черного экрана (0.5 сек)
+            pass
 
     if show_fps:
         screen.blit(small_font.render(f"FPS: {int(clock.get_fps())}", True, GOLD), (WIDTH - 90, 10))
