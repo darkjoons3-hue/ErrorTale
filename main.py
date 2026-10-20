@@ -58,7 +58,7 @@ if logo_raw.get_width() > 0 and logo_raw.get_width() != 100:
 else:
     logo = logo_raw
 
-# Фоны (СИЛЬНО УМЕНЬШЕНЫ)
+# Фоны
 bg_up = load_img('background-up.png', (280, 90))
 bg_down = load_img('background-down.png', (320, 120))
 
@@ -184,10 +184,10 @@ while running:
                 
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select)
-                    if opt_selected == 0: # Полный экран (с флагом SCALED для фикса)
+                    if opt_selected == 0: # Полный экран (Убран багованный SCALED)
                         is_fullscreen = not is_fullscreen
                         if is_fullscreen:
-                            screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+                            screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.FULLSCREEN)
                         else:
                             screen = pygame.display.set_mode((WIDTH, HEIGHT))
                     elif opt_selected == 1: sound_on = not sound_on
@@ -241,9 +241,9 @@ while running:
         screen.blit(press_copy, press_copy.get_rect(center=(cx, HEIGHT - 60)))
 
     elif state == STATE_MENU:
-        # Фоны (уменьшенные)
+        # Фоны (Лужайка поднята с 420 на 390)
         screen.blit(bg_up, bg_up.get_rect(center=(cx, 50)))
-        screen.blit(bg_down, bg_down.get_rect(center=(cx, 420)))
+        screen.blit(bg_down, bg_down.get_rect(center=(cx, 390)))
 
         # Кнопка выхода
         screen.blit(menu_font.render("X", True, WHITE), (20, 5))
@@ -304,11 +304,9 @@ while running:
         screen.blit(hint, hint.get_rect(center=(cx, HEIGHT - 30)))
 
     elif state == STATE_CREDITS:
-        # Заголовок
         title = font.render("ТИТРЫ", True, WHITE)
         screen.blit(title, title.get_rect(center=(cx, 100)))
         
-        # Текст
         line1 = menu_font.render("Игру делали:", True, GOLD)
         line2 = stat_font.render("Darkjoons", True, WHITE)
         line3 = stat_font.render("smile103", True, WHITE)
@@ -317,12 +315,10 @@ while running:
         screen.blit(line2, line2.get_rect(center=(cx, 260)))
         screen.blit(line3, line3.get_rect(center=(cx, 300)))
         
-        # Подсказка назад
         hint = small_font.render("Нажмите X или Z чтобы вернуться", True, WHITE)
         hint.set_alpha(150)
         screen.blit(hint, hint.get_rect(center=(cx, HEIGHT - 50)))
 
-    # Отрисовка FPS (если включено)
     if show_fps:
         fps_text = small_font.render(f"FPS: {int(clock.get_fps())}", True, GOLD)
         screen.blit(fps_text, (WIDTH - 90, 10))
