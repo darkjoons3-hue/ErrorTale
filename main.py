@@ -20,7 +20,6 @@ WHITE = (255, 255, 255)
 RED = (255, 0, 0)
 YELLOW = (255, 255, 0)
 GOLD = (255, 215, 0)
-ORANGE = (255, 130, 0)
 
 cx = WIDTH // 2
 cy = HEIGHT // 2
@@ -75,7 +74,7 @@ def load_snd(name):
 
 snd_logo1 = load_snd('undertale-logo1.mp3')
 snd_logo2 = load_snd('undertale-logo2.mp3')
-snd_select = load_snd('select.mp3') # Новый звук селекта
+snd_select = load_snd('select.mp3')
 
 def play_snd(s):
     if s: s.play()
@@ -106,11 +105,9 @@ STATE_MENU = 3
 state = STATE_LOGO_APPEAR
 start_time = pygame.time.get_ticks()
 
-# Переменные меню
-# 0 - Продолжить, 1 - Сброс, 2 - Настройки, 3 - Титры
 menu_selected = 0 
-last_top = 0 # Запоминаем верхнюю кнопку (0 или 1)
-last_bottom = 2 # Запоминаем нижнюю кнопку (2 или 3)
+last_top = 0 
+last_bottom = 2 
 
 clock = pygame.time.Clock()
 running = True
@@ -133,38 +130,33 @@ while running:
                     play_snd(snd_select)
                     state = STATE_MENU
                     start_time = now
-                    play_music('MainTheme.mp3') # Запуск главной темы
+                    play_music('MainTheme.mp3')
 
-            # --- МЕНЮ ---
+            # --- МЕНЮ (Добавлены WASD) ---
             elif state == STATE_MENU:
-                if event.key == pygame.K_LEFT:
+                if event.key in (pygame.K_LEFT, pygame.K_a):
                     if menu_selected == 1: menu_selected = 0; play_snd(snd_select)
                     elif menu_selected == 3: menu_selected = 2; play_snd(snd_select)
                         
-                if event.key == pygame.K_RIGHT:
+                if event.key in (pygame.K_RIGHT, pygame.K_d):
                     if menu_selected == 0: menu_selected = 1; play_snd(snd_select)
                     elif menu_selected == 2: menu_selected = 3; play_snd(snd_select)
                         
-                if event.key == pygame.K_UP:
+                if event.key in (pygame.K_UP, pygame.K_w):
                     if menu_selected == 2: menu_selected = last_top; play_snd(snd_select)
                     elif menu_selected == 3: menu_selected = last_top; play_snd(snd_select)
                         
-                if event.key == pygame.K_DOWN:
+                if event.key in (pygame.K_DOWN, pygame.K_s):
                     if menu_selected == 0: menu_selected = last_bottom; play_snd(snd_select)
                     elif menu_selected == 1: menu_selected = last_bottom; play_snd(snd_select)
                         
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select)
-                    if menu_selected == 0:
-                        print("Нажато: Продолжить")
-                    elif menu_selected == 1:
-                        print("Нажато: Сброс")
-                    elif menu_selected == 2:
-                        print("Нажато: Настройки")
-                    elif menu_selected == 3:
-                        print("Нажато: Титры")
+                    if menu_selected == 0: print("Нажато: Продолжить")
+                    elif menu_selected == 1: print("Нажато: Сброс")
+                    elif menu_selected == 2: print("Нажато: Настройки")
+                    elif menu_selected == 3: print("Нажато: Титры")
 
-                # Запоминаем, где мы находимся, чтобы стрелка вверх/вниз работала логично
                 if menu_selected in (0, 1): last_top = menu_selected
                 if menu_selected in (2, 3): last_bottom = menu_selected
 
@@ -204,50 +196,45 @@ while running:
     # МЕНЮ
     # ==========================================
     elif state == STATE_MENU:
-        # 1. Фоны
-        screen.blit(bg_up, bg_up.get_rect(center=(cx, 60))) # Колонны
-        screen.blit(bg_down, bg_down.get_rect(center=(cx, 380))) # Лужайка
+        # Фоны
+        screen.blit(bg_up, bg_up.get_rect(center=(cx, 60)))
+        screen.blit(bg_down, bg_down.get_rect(center=(cx, 380)))
 
-        # 2. Кнопка выхода "X"
+        # Кнопка выхода
         screen.blit(menu_font.render("X", True, WHITE), (20, 20))
 
-        # 3. Статистика
+        # Статистика
         screen.blit(stat_font.render("CHARA", True, WHITE), (130, 140))
         screen.blit(stat_font.render("LV 19", True, WHITE), (290, 140))
         screen.blit(stat_font.render("666:66", True, WHITE), (450, 140))
         screen.blit(stat_font.render("КОНЕЦ", True, WHITE), (130, 180))
 
-        # 4. Кнопки меню (Квадрат 2х2)
-        # --- Верхний ряд ---
-        # ПРОДОЛЖИТЬ
+        # --- Верхний ряд кнопок (y=240) ---
         c1 = GOLD if menu_selected == 0 else WHITE
         t1 = menu_font.render("ПРОДОЛЖИТЬ", True, c1)
         screen.blit(t1, (130, 240))
         if menu_selected == 0: draw_heart(100, 252, 24)
 
-        # СБРОС
         c2 = GOLD if menu_selected == 1 else WHITE
         t2 = menu_font.render("СБРОС", True, c2)
         screen.blit(t2, (410, 240))
         if menu_selected == 1: draw_heart(380, 252, 24)
 
-        # --- Нижний ряд ---
-        # НАСТРОЙКИ
+        # --- Нижний ряд кнопок (Подняли с 300 на 280) ---
         c3 = GOLD if menu_selected == 2 else WHITE
         t3 = menu_font.render("НАСТРОЙКИ", True, c3)
-        screen.blit(t3, (130, 300))
-        if menu_selected == 2: draw_heart(100, 312, 24)
+        screen.blit(t3, (130, 280))
+        if menu_selected == 2: draw_heart(100, 292, 24)
 
-        # ТИТРЫ
         c4 = GOLD if menu_selected == 3 else WHITE
         t4 = menu_font.render("ТИТРЫ", True, c4)
-        screen.blit(t4, (410, 300))
-        if menu_selected == 3: draw_heart(380, 312, 24)
+        screen.blit(t4, (410, 280))
+        if menu_selected == 3: draw_heart(380, 292, 24)
 
-        # 5. Прозрачный футер
+        # Футер
         footer_text = small_font.render("ErrorTale by: Darkjoons, smile103 year 2026", True, WHITE)
         footer_copy = footer_text.copy()
-        footer_copy.set_alpha(120) # Делаем прозрачным (от 0 до 255)
+        footer_copy.set_alpha(120) 
         screen.blit(footer_copy, footer_copy.get_rect(center=(cx, HEIGHT - 20)))
 
     pygame.display.flip()
