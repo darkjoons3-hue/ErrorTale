@@ -90,7 +90,7 @@ def load_snd(name):
 
 snd_logo1 = load_snd('undertale-logo1.mp3')
 snd_logo2 = load_snd('undertale-logo2.mp3')
-snd_logo_main = load_snd('logo_main.mp3') # Новый звук для "Нажмите Z"
+snd_log-main = load_snd('log-main.mp3') # Новый звук для "Нажмите Z"
 snd_select = load_snd('select.mp3')
 snd_bells = load_snd('bells.mp3')
 snd_dark = load_snd('dark.mp3')
