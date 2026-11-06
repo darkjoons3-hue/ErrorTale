@@ -2,6 +2,7 @@ import pygame
 import sys
 import os
 import math
+import random # Добавили для случайного сдвига
 
 pygame.init()
 pygame.mixer.init()
@@ -55,9 +56,9 @@ bg_down = load_img('background-down.png', (320, 120))
 heart_img = load_img('soul-red.png', (24, 24))
 history_img = load_img('history.png', (500, 370))
 
-# Картинки боя
-error_sans_img = load_img('error-sans-static.png', (140, 210)) # Санс чуть меньше
-dialog_bubble = load_img('dialog-sans.png', (280, 120)) # Бабл чуть шире
+# Картинки боя (Санс уменьшен)
+error_sans_img = load_img('error-sans-static.png', (120, 180))
+dialog_bubble = load_img('dialog-sans.png', (280, 120))
 btn_fight = load_img('fight.png', (130, 50))
 btn_act = load_img('act.png', (130, 50))
 btn_item = load_img('item.png', (130, 50))
@@ -81,7 +82,7 @@ except:
     battle_font = pygame.font.Font(None, 26)
 
 try:
-    sans_font = pygame.font.Font(resource_path('ComicSans.ttf'), 20) # Шрифт Санса чуть меньше для влезания
+    sans_font = pygame.font.Font(resource_path('ComicSans.ttf'), 20)
 except: sans_font = pygame.font.Font(None, 22)
 
 def load_snd(name):
@@ -90,7 +91,7 @@ def load_snd(name):
 
 snd_logo1 = load_snd('undertale-logo1.mp3')
 snd_logo2 = load_snd('undertale-logo2.mp3')
-snd_logo_main = load_snd('log-main.mp3') # Новый звук для "Нажмите Z"
+snd_logo_main = load_snd('log-main.mp3')
 snd_select = load_snd('select.mp3')
 snd_bells = load_snd('bells.mp3')
 snd_dark = load_snd('dark.mp3')
@@ -107,8 +108,12 @@ def play_music(path, loops=-1):
         pygame.mixer.music.play(loops)
     except: pass
 
-def stop_music():
-    pygame.mixer.music.stop()
+def stop_all_sounds():
+    """Жестко выключает ВСЕ звуки и музыку"""
+    try: pygame.mixer.stop()
+    except: pass
+    try: pygame.mixer.music.stop()
+    except: pass
 
 # ==========================================
 # ПЕРЕМЕННЫЕ ИГРЫ
@@ -155,7 +160,6 @@ text_timer = 0
 current_text = ""
 text_color = BLACK
 
-# Функция для автоматического переноса текста
 def wrap_text(text, font, max_width):
     lines = []
     words = text.split(' ')
@@ -217,7 +221,8 @@ while running:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
                     play_snd(snd_select)
                     if menu_selected == 0: 
-                        stop_music(); start_fade(STATE_HISTORY)
+                        stop_all_sounds()
+                        start_fade(STATE_HISTORY)
                     elif menu_selected == 1: 
                         state = STATE_CONFIRM_RESET; confirm_choice = 0
                     elif menu_selected == 2: 
@@ -253,7 +258,7 @@ while running:
                     elif opt_selected == 1: sound_on = not sound_on
                     elif opt_selected == 2: 
                         music_on = not music_on
-                        if not music_on: stop_music()
+                        if not music_on: stop_all_sounds()
                         else: play_music('MainTheme.mp3')
                     elif opt_selected == 3: show_fps = not show_fps
                     elif opt_selected == 4: state = STATE_MENU
@@ -266,11 +271,12 @@ while running:
 
             elif state == STATE_HISTORY:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
-                    play_snd(snd_select); stop_music(); start_fade(STATE_BELLS)
+                    play_snd(snd_select)
+                    stop_all_sounds() # ЖЕСТКО ВЫРУБАЕМ ИСТОРИЮ
+                    start_fade(STATE_BELLS)
 
             elif state == STATE_BATTLE:
                 if event.key in (pygame.K_z, pygame.K_RETURN):
-                    # Убран звук select в бою
                     if text_typed < len(current_text):
                         text_typed = len(current_text)
                     else:
@@ -299,7 +305,6 @@ while running:
             errmod_alpha = min(255, errmod_alpha + 5)
             if logo_timer > 1500: 
                 logo_phase = 2; logo_timer = 0
-                # Включаем logo_main только когда появилась надпись "Нажмите Z"
                 if not logo_main_played:
                     play_snd(snd_logo_main)
                     logo_main_played = True
@@ -347,7 +352,7 @@ while running:
         
         elif battle_phase == 3:
             battle_timer += dt
-            if battle_timer > 500: # 0.5 секунды черного экрана
+            if battle_timer > 500:
                 battle_phase = 4
                 text_color = RED
                 current_text = "ДОБРО ПОЖАЛОВАТЬ В АД"
@@ -373,29 +378,51 @@ while running:
             screen.blit(press_copy, press_copy.get_rect(center=(cx, HEIGHT - 60)))
 
     elif state == STATE_MENU:
-        screen.blit(bg_up, bg_up.get_rect(center=(cx, 50)))
-        screen.blit(bg_down, bg_down.get_rect(center=(cx, 390)))
-        screen.blit(menu_font.render("X", True, WHITE), (20, 5))
-        screen.blit(stat_font.render("CHARA", True, WHITE), (130, 140))
-        screen.blit(stat_font.render("LV 19", True, WHITE), (290, 140))
-        screen.blit(stat_font.render("666:66", True, WHITE), (450, 140))
-        screen.blit(stat_font.render("КОНЕЦ", True, WHITE), (130, 180))
+        # --- GDI ЭФФЕКТЫ ---
+        # Раз в 3 секунды (3000 мс) включаем глитч на 150 мс
+        glitch_active = (now % 3000) < 150
+        g_offset = random.choice([-3, 3]) if glitch_active else 0
+        
+        # Отрисовываем меню на временную поверхность
+        menu_surf = pygame.Surface((WIDTH, HEIGHT))
+        menu_surf.fill(BLACK)
+        
+        menu_surf.blit(bg_up, bg_up.get_rect(center=(cx, 50)))
+        menu_surf.blit(bg_down, bg_down.get_rect(center=(cx, 390)))
+        menu_surf.blit(menu_font.render("X", True, WHITE), (20, 5))
+        menu_surf.blit(stat_font.render("CHARA", True, WHITE), (130, 140))
+        menu_surf.blit(stat_font.render("LV 19", True, WHITE), (290, 140))
+        menu_surf.blit(stat_font.render("666:66", True, WHITE), (450, 140))
+        menu_surf.blit(stat_font.render("КОНЕЦ", True, WHITE), (130, 180))
         
         c1 = GOLD if menu_selected == 0 else WHITE
-        screen.blit(menu_font.render("ПРОДОЛЖИТЬ", True, c1), (130, 240))
-        if menu_selected == 0: draw_heart(100, 252)
+        menu_surf.blit(menu_font.render("ПРОДОЛЖИТЬ", True, c1), (130, 240))
+        if menu_selected == 0: menu_surf.blit(heart_img, heart_img.get_rect(center=(100, 252)))
+        
         c2 = GOLD if menu_selected == 1 else WHITE
-        screen.blit(menu_font.render("СБРОС", True, c2), (410, 240))
-        if menu_selected == 1: draw_heart(380, 252)
+        menu_surf.blit(menu_font.render("СБРОС", True, c2), (410, 240))
+        if menu_selected == 1: menu_surf.blit(heart_img, heart_img.get_rect(center=(380, 252)))
+        
         c3 = GOLD if menu_selected == 2 else WHITE
-        screen.blit(menu_font.render("НАСТРОЙКИ", True, c3), (130, 280))
-        if menu_selected == 2: draw_heart(100, 292)
+        menu_surf.blit(menu_font.render("НАСТРОЙКИ", True, c3), (130, 280))
+        if menu_selected == 2: menu_surf.blit(heart_img, heart_img.get_rect(center=(100, 292)))
+        
         c4 = GOLD if menu_selected == 3 else WHITE
-        screen.blit(menu_font.render("ТИТРЫ", True, c4), (410, 280))
-        if menu_selected == 3: draw_heart(380, 292)
+        menu_surf.blit(menu_font.render("ТИТРЫ", True, c4), (410, 280))
+        if menu_selected == 3: menu_surf.blit(heart_img, heart_img.get_rect(center=(380, 292)))
 
         footer = small_font.render("ErrorTale by: Darkjoons, smile103 year 2026", True, WHITE)
-        footer.set_alpha(120); screen.blit(footer, footer.get_rect(center=(cx, HEIGHT - 15)))
+        footer.set_alpha(120); menu_surf.blit(footer, footer.get_rect(center=(cx, HEIGHT - 15)))
+
+        # Выводим на экран со сдвигом (если глитч)
+        screen.blit(menu_surf, (g_offset, g_offset))
+        
+        # Если глитч, накладываем красный фильтр
+        if glitch_active:
+            red_overlay = pygame.Surface((WIDTH, HEIGHT))
+            red_overlay.fill(RED)
+            red_overlay.set_alpha(80)
+            screen.blit(red_overlay, (0, 0))
 
     elif state == STATE_CONFIRM_RESET:
         screen.blit(bg_up, bg_up.get_rect(center=(cx, 50)))
@@ -433,9 +460,7 @@ while running:
         screen.blit(menu_font.render("Игру делали:", True, GOLD), menu_font.render("Игру делали:", True, GOLD).get_rect(center=(cx, 180)))
         screen.blit(stat_font.render("Darkjoons", True, WHITE), stat_font.render("Darkjoons", True, WHITE).get_rect(center=(cx, 230)))
         screen.blit(stat_font.render("smile103", True, WHITE), stat_font.render("smile103", True, WHITE).get_rect(center=(cx, 270)))
-        # Добавлен cingulf
         screen.blit(stat_font.render("cingulf", True, WHITE), stat_font.render("cingulf", True, WHITE).get_rect(center=(cx, 310)))
-        
         hint = small_font.render("Нажмите X или Z чтобы вернуться", True, WHITE); hint.set_alpha(150)
         screen.blit(hint, hint.get_rect(center=(cx, HEIGHT - 50)))
 
@@ -453,7 +478,8 @@ while running:
     elif state == STATE_BATTLE:
         if battle_phase == 0:
             sans_copy = error_sans_img.copy(); sans_copy.set_alpha(battle_alpha)
-            screen.blit(sans_copy, sans_copy.get_rect(center=(cx - 10, 150))) # Санс по центру
+            # Санс чуть выше и правее
+            screen.blit(sans_copy, sans_copy.get_rect(center=(cx + 10, 150))) 
             
             name_txt = battle_big_font.render("CHARA", True, WHITE); name_txt.set_alpha(battle_alpha)
             lv_txt = battle_big_font.render("LV 19", True, WHITE); lv_txt.set_alpha(battle_alpha)
@@ -471,69 +497,64 @@ while running:
                     screen.blit(btn_c, (x_pos, btn_y))
 
         elif battle_phase in (1, 2):
-            # ТОЛЬКО Санс и бабл (без арены!)
-            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx - 10, 150)))
+            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx + 10, 150)))
             
-            # Статы
             screen.blit(battle_big_font.render("CHARA", True, WHITE), (40, 380))
             screen.blit(battle_big_font.render("LV 19", True, WHITE), (150, 380))
             pygame.draw.rect(screen, (255, 255, 0), (250, 385, 100, 15))
             screen.blit(battle_big_font.render("HP 92/92", True, WHITE), (360, 380))
             
-            # Кнопки чуть выше
             screen.blit(btn_fight, (20, 415))
             screen.blit(btn_act, (170, 415))
             screen.blit(btn_item, (320, 415))
             screen.blit(btn_mercy, (470, 415))
 
-            # Бабл диалога (сдвинут ближе к Сансу)
-            bubble_x, bubble_y = 320, 60
+            # Бабл диалога (сдвинут вправо, чтобы не налезал на Санса)
+            bubble_x, bubble_y = 330, 60
             screen.blit(dialog_bubble, (bubble_x, bubble_y))
             
             visible_text = current_text[:text_typed]
-            lines = wrap_text(visible_text, sans_font, 210) # Уменьшили ширину для надежности
+            # Уменьшили ширину текста до 180, чтобы не касался краев
+            lines = wrap_text(visible_text, sans_font, 180) 
             
-            line_y = bubble_y + 30
+            # Отступы для текста (как в Word)
+            line_y = bubble_y + 35
             for line in lines:
                 t = sans_font.render(line, True, text_color)
-                screen.blit(t, (bubble_x + 40, line_y))
-                line_y += 26
+                screen.blit(t, (bubble_x + 45, line_y)) # Сдвинули вправо на 45
+                line_y += 24 # Чуть уменьшили межстрочный интервал
 
         elif battle_phase == 3:
-            pass # Черный экран
+            pass 
 
         elif battle_phase == 4:
-            # Арена появляется ТОЛЬКО ЗДЕСЬ
-            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx - 10, 150)))
+            screen.blit(error_sans_img, error_sans_img.get_rect(center=(cx + 10, 150)))
             
             battle_box = pygame.Rect(80, 250, 480, 110)
             pygame.draw.rect(screen, WHITE, battle_box, 3)
             draw_heart(cx, 305)
 
-            # Статы
             screen.blit(battle_big_font.render("CHARA", True, WHITE), (40, 380))
             screen.blit(battle_big_font.render("LV 19", True, WHITE), (150, 380))
             pygame.draw.rect(screen, (255, 255, 0), (250, 385, 100, 15))
             screen.blit(battle_big_font.render("HP 92/92", True, WHITE), (360, 380))
             
-            # Кнопки
             screen.blit(btn_fight, (20, 415))
             screen.blit(btn_act, (170, 415))
             screen.blit(btn_item, (320, 415))
             screen.blit(btn_mercy, (470, 415))
 
-            # Бабл с красным текстом
-            bubble_x, bubble_y = 320, 60
+            bubble_x, bubble_y = 330, 60
             screen.blit(dialog_bubble, (bubble_x, bubble_y))
             
             visible_text = current_text[:text_typed]
-            lines = wrap_text(visible_text, sans_font, 210)
+            lines = wrap_text(visible_text, sans_font, 180)
             
-            line_y = bubble_y + 40
+            line_y = bubble_y + 35
             for line in lines:
                 t = sans_font.render(line, True, text_color)
-                screen.blit(t, (bubble_x + 40, line_y))
-                line_y += 26
+                screen.blit(t, (bubble_x + 45, line_y))
+                line_y += 24
 
     if show_fps:
         screen.blit(small_font.render(f"FPS: {int(clock.get_fps())}", True, GOLD), (WIDTH - 90, 10))
